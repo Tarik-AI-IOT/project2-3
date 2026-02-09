@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { v4 as uuidv4 } from 'uuid';
+import uuid from "react-native-uuid";
 import { useState } from "react";
 
 export const ID = {
-  unique: () => uuidv4(),
+  unique: () => uuid.v4(),
 };
 
 export const account = {
@@ -15,7 +15,7 @@ export const account = {
     }
 
 
-    const newUser = { id, email, password };
+    const newUser = { id: ID.unique(), email, password };
     users.push(newUser);
     await AsyncStorage.setItem('users', JSON.stringify(users));
     await AsyncStorage.setItem('currentUser', JSON.stringify(newUser));

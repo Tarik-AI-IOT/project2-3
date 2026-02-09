@@ -1,4 +1,4 @@
-import { StyleSheet, Pressable } from "react-native";
+import { StyleSheet, Pressable, KeyboardAvoidingView } from "react-native";
 import { Link, useRouter} from "expo-router";
 import ThemedView from "../../components/ThemedView";
 import ThemedButton from "../../components/ThemedButton";

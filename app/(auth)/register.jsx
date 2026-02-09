@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Keyboard, KeyboardAvoidingView } from "react-native";
 import { Link , useRouter } from "expo-router";
 import ThemedButton from "../../components/ThemedButton";
 import ThemedView from "../../components/ThemedView";
