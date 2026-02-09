@@ -1,0 +1,12 @@
+Dans le futur faire sa pour les imports 
+
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@components/*": ["components/*"],
+      "@context/*": ["context/*"],
+      "@constants/*": ["constants/*"]
+    }
+  }
+}
