@@ -68,6 +68,22 @@ const DashboardLayout = () => {
           ),
         }}
       />
+      
+      <Tabs.Screen
+        name="nutrition"
+        options={{
+          title: "Nutrition",
+          tabBarIcon: ({ focused }) => (
+            <AnimatedTabIcon
+              focused={focused}
+              name={focused ? "fast-food" : "fast-food-outline"}
+              color={focused ? theme.tabIconSelected : theme.tabIconDefault}
+            />
+          ),
+        }}
+      />
+
+
       <Tabs.Screen
         name="profile"
         options={{
