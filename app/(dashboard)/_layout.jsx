@@ -81,6 +81,13 @@ const DashboardLayout = () => {
           ),
         }}
       />
+
+      <Tabs.Screen
+  name="exercise/[id]"
+  options={{
+    href: null,
+  }}
+/>
     </Tabs>
   );
 };
