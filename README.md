@@ -1,4 +1,4 @@
-# Project2-3 — Fitness App (Expo Router)
+# TP2 - Fitness App - RoFit
 
 Une application mobile de fitness simple et claire.  
 Elle propose un **Home** avec des exercices animés, un **Progress** avec graphiques interactifs, un **Profile** complet avec mode clair/sombre et logout, et un onglet **Nutrition** pour suivre ses macros.
@@ -79,6 +79,10 @@ services/
 
 ## Screenshots
 
+![Login Screen](assets/loginPicture.png)
+![Home Screen](assets/homePicture.png)
+![Progress Screen](assets/progressPicture.png)
+![Nutrition Screen](assets/nutritionPicture.png)
 
 
 ---
