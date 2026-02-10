@@ -79,10 +79,12 @@ services/
 
 ## Screenshots
 
-![Login Screen](assets/loginPicture.png)
-![Home Screen](assets/homePicture.png)
-![Progress Screen](assets/progressPicture.png)
-![Nutrition Screen](assets/nutritionPicture.png)
+
+<img src="assets/loginPicture.png" alt="Login Screen" width="300" />
+<img src="assets/homePicture.png" alt="Home Screen" width="300" />
+<img src="assets/progressPicture.png" alt="Progress Screen" width="300" />
+<img src="assets/nutritionPicture.png" alt="Nutrition Screen" width="300" />
+
 
 
 ---
