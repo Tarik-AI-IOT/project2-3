@@ -4,6 +4,8 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ThemedView from "../../components/ThemedView";
 import { useTheme } from "../../context/ThemeContext";
 import ThemedText from "../../components/ThemedText";
+import ThemedButton from "../../components/ThemedButton";
+import { useUser } from "../../hooks/useUser";
 
 const infoRows = [
   { label: "Age", value: "28 years" },
@@ -15,6 +17,7 @@ const infoRows = [
 const Profile = () => {
   const { theme, mode, toggleTheme } = useTheme();
   const router = useRouter();
+  const { logout } = useUser();
 
   return (
     <ThemedView style={styles.container} safe={true}>
@@ -148,6 +151,16 @@ const Profile = () => {
             </View>
           ))}
         </View>
+
+        <ThemedButton
+          style={styles.logoutButton}
+          onPress={async () => {
+            await logout();
+            router.replace("/login");
+          }}
+        >
+          <ThemedText style={styles.logoutText}>Log out</ThemedText>
+        </ThemedButton>
       </ScrollView>
     </ThemedView>
   );
@@ -290,6 +303,15 @@ const styles = StyleSheet.create({
   infoValue: {
     marginTop: 6,
     fontSize: 15,
+    fontWeight: "600",
+  },
+  logoutButton: {
+    marginTop: 24,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  logoutText: {
+    color: "#ffffff",
     fontWeight: "600",
   },
 });

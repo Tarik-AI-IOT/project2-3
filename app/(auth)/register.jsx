@@ -1,4 +1,4 @@
-import { StyleSheet, Keyboard, KeyboardAvoidingView } from "react-native";
+import { StyleSheet, Keyboard, KeyboardAvoidingView, Image, Platform } from "react-native";
 import { Link , useRouter } from "expo-router";
 import ThemedButton from "../../components/ThemedButton";
 import ThemedView from "../../components/ThemedView";
@@ -23,26 +23,28 @@ const Register = () => {
     try {
       await register(email, password);
       console.log("current user:", user);
-      router.replace("/home");
+      router.replace("/(dashboard)/home");
     }
     catch (error) {
       console.error("Registration error:", error.message);
     }
   };
 
-  return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+  const content = (
     <ThemedView style={styles.container}>
       <Spacer />
+
+      <Image source={require("../../assets/rofit.png")} style={styles.logo} />
+      <Spacer height={24} />
 
       <ThemedText title style={styles.title}>
         Register for an account
       </ThemedText>
       
-      <ThemedTextInput style={{width: '80%', marginBottom: 20}} placeholder="Email" keyboardType="email-address"
+      <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="Email" keyboardType="email-address"
         onChangeText={setEmail} value={email}
       />
-      <ThemedTextInput style={{width: '80%', marginBottom: 20}} placeholder="Password" secureTextEntry={true}
+      <ThemedTextInput style={{width: '80%', marginBottom: 24}} placeholder="Password" secureTextEntry={true}
         onChangeText={setPassword} value={password}
       />
 
@@ -50,6 +52,7 @@ const Register = () => {
         <ThemedText>Register</ThemedText>
       </ThemedButton>
 
+      <Spacer height={36} />
       <Link href="/login" style={styles.link}>
         <ThemedText
           style={{ textAlign: "center", textDecorationLine: "underline" }}
@@ -58,6 +61,11 @@ const Register = () => {
         </ThemedText>
       </Link>
     </ThemedView>
+  );
+
+  return Platform.OS === "web" ? content : (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      {content}
     </TouchableWithoutFeedback>
   );
 };
@@ -73,6 +81,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     textAlign: "center",
-    marginBottom: 30,
+    marginBottom: 24,
+  },
+  logo: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
   },
 });
