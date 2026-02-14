@@ -14,6 +14,8 @@ const Register = () => {
 
   const router = useRouter();
 
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -21,7 +23,7 @@ const Register = () => {
 
   const handleSubmit = async () => {
     try {
-      await register(email, password);
+      await register(email, password, firstName, lastName);
       console.log("current user:", user);
       router.replace("/(dashboard)/home");
     }
@@ -40,7 +42,8 @@ const Register = () => {
       <ThemedText title style={styles.title}>
         Register for an account
       </ThemedText>
-      
+      <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="First Name" autoCapitalize="words" onChangeText={setFirstName} value={firstName} />
+      <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="Last Name" autoCapitalize="words" onChangeText={setLastName} value={lastName} />
       <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="Email" keyboardType="email-address"
         onChangeText={setEmail} value={email}
       />

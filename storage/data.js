@@ -7,7 +7,7 @@ export const ID = {
 };
 
 export const account = {
-  async create(id, email, password) {
+  async create(id, email, password, firstName, lastName) {
     const users = JSON.parse(await AsyncStorage.getItem('users')) || [];
 
     if (users.find(user => user.email === email)) {
@@ -15,7 +15,7 @@ export const account = {
     }
 
 
-    const newUser = { id: ID.unique(), email, password };
+    const newUser = { id: ID.unique(), email, password, firstName, lastName };
     users.push(newUser);
     await AsyncStorage.setItem('users', JSON.stringify(users));
     await AsyncStorage.setItem('currentUser', JSON.stringify(newUser));

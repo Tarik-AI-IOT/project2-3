@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native'
+import { StyleSheet, Pressable,View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router'
 import ThemedView from "../../components/ThemedView"
 import { useTheme } from "../../context/ThemeContext";
@@ -6,6 +6,7 @@ import ThemedText from '../../components/ThemedText';
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState, useEffect } from 'react';
 import { fetchExercises } from '../../services/exercises';
+import { useUser } from '../../hooks/useUser';
 
 
 
@@ -19,6 +20,7 @@ const exercises = [
 const Home = () => {
     const { theme } = useTheme();
     const router = useRouter();
+    const { user } = useUser();
 
     const [workoutExercises, setWorkoutExercises] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -65,7 +67,7 @@ return (
           </TouchableOpacity>
         </View>
 
-        <ThemedText style={styles.title}>Welcome Back, Alex</ThemedText>
+        <ThemedText style={styles.title}>Welcome Back, {user?.firstName || "John"}</ThemedText>
         <ThemedText style={[styles.subtitle, {color: theme.textSecondary}]}>Let's crush today's workout!</ThemedText>
 
         <View style={[styles.workoutCard, { backgroundColor: theme.cardBackground }]}>

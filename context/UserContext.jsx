@@ -14,9 +14,9 @@ export function UserProvider({ children }) {
     loadUser();
   }, []);
 
-  async function register(email, password) {
+  async function register(email, password, firstName, lastName) {
     try {
-      const newUser = await account.create(ID.unique(), email, password);
+      const newUser = await account.create(ID.unique(), email, password, firstName, lastName);
       setUser(newUser);
     } catch (error) {
       console.error("Registration error:", error.message);

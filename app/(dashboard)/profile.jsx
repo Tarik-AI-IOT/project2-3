@@ -17,7 +17,9 @@ const infoRows = [
 const Profile = () => {
   const { theme, mode, toggleTheme } = useTheme();
   const router = useRouter();
-  const { logout } = useUser();
+  const { user ,logout } = useUser();
+  console.log("user info",user)
+
 
   return (
     <ThemedView style={styles.container} safe={true}>
@@ -82,7 +84,7 @@ const Profile = () => {
               <Ionicons name="person" size={32} color={theme.primary} />
             </View>
           </View>
-          <ThemedText style={styles.name}>Alex Johnson</ThemedText>
+          <ThemedText style={styles.name}>{user?.firstName || "John"} {user?.lastName || "Doe"}</ThemedText>
         </View>
 
         <View style={styles.statsRow}>
@@ -238,7 +240,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   name: {
-    marginTop: 16,
+    marginTop: 14,
+    marginBottom: 10,
     fontSize: 20,
     fontWeight: "700",
   },
