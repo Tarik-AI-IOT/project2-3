@@ -18,17 +18,22 @@ const Register = () => {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [error, setError] = useState("");
   const {user, register} = useUser();
 
   const handleSubmit = async () => {
     try {
+      if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
+        setError("Please fill in all fields");
+        return;
+      }
       await register(email, password, firstName, lastName);
       console.log("current user:", user);
       router.replace("/(dashboard)/home");
     }
     catch (error) {
       console.error("Registration error:", error.message);
+      setError(error.message);
     }
   };
 
@@ -42,6 +47,7 @@ const Register = () => {
       <ThemedText title style={styles.title}>
         Register for an account
       </ThemedText>
+      {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
       <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="First Name" autoCapitalize="words" onChangeText={setFirstName} value={firstName} />
       <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="Last Name" autoCapitalize="words" onChangeText={setLastName} value={lastName} />
       <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="Email" keyboardType="email-address"
@@ -91,4 +97,9 @@ const styles = StyleSheet.create({
     height: 140,
     borderRadius: 70,
   },
+  errorText: {
+    color: "red",
+    marginBottom: 12,
+    textAlign: "center",
+},
 });
