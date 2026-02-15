@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity } from "react-native";
+import { StyleSheet, View, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ThemedView from "../../components/ThemedView";
@@ -68,11 +68,17 @@ const Profile = () => {
 
 
   return (
-    <ThemedView style={styles.container} safe={true}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+    >
+      <ThemedView style={styles.container} safe={true} safeBottom={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.topBar}>
           <TouchableOpacity
             style={[styles.circleButton, { backgroundColor: theme.cardBackground }]}
@@ -246,8 +252,9 @@ const Profile = () => {
         >
           <ThemedText style={styles.logoutText}>Log out</ThemedText>
         </ThemedButton>
-      </ScrollView>
-    </ThemedView>
+        </ScrollView>
+      </ThemedView>
+    </KeyboardAvoidingView>
   );
 };
 

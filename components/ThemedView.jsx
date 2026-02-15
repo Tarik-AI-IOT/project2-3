@@ -1,32 +1,30 @@
 import { View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 
-const ThemedView = ({ style, safe=false, ...props }) => {
+const ThemedView = ({ style, safe = false, safeBottom = true, ...props }) => {
   const { theme } = useTheme();
 
-  if (!safe) return (
-    <View 
-     style={[{ backgroundColor: theme.background }, style]} 
-     {...props} 
-   />
-  )
+  if (!safe) {
+    return <View style={[{ backgroundColor: theme.background }, style]} {...props} />;
+  }
 
   const insets = useSafeAreaInsets();
 
   return (
-    <View 
-     style={[{ 
-      backgroundColor: theme.background, 
-      paddingTop: insets.top, 
-      paddingBottom: insets.bottom,
-    },
-      style
-    ]} 
-     {...props} 
-   />
-  )
+    <View
+      style={[
+        {
+          backgroundColor: theme.background,
+          paddingTop: insets.top,
+          paddingBottom: safeBottom ? insets.bottom : 0,
+        },
+        style,
+      ]}
+      {...props}
+    />
+  );
 };
 
 export default ThemedView;

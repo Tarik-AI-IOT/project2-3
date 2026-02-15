@@ -35,7 +35,7 @@ const Nutrition = () => {
 };
 
   return (
-    <ThemedView style={styles.container} safe={true}>
+    <ThemedView style={styles.container} safe={true} safeBottom={false}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Nutrition</ThemedText>
         <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>

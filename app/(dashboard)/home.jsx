@@ -54,7 +54,7 @@ const Home = () => {
 
 
 return (
-    <ThemedView style={styles.container} safe={true}>
+    <ThemedView style={styles.container} safe={true} safeBottom={false}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
           <Image  source={require("../../assets/rofit.png")} style={styles.logo} />

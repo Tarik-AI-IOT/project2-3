@@ -10,10 +10,12 @@ import ThemedTextInput from "../../components/ThemedTextInput";
 import { useState } from "react";
 import { TouchableWithoutFeedback , Keyboard } from "react-native";
 import { useUser } from "../../hooks/useUser";
+import { useTheme } from "../../context/ThemeContext";
 
 
 const Login = () => {
   const router = useRouter();
+  const { theme } = useTheme();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,9 +68,15 @@ const Login = () => {
   );
 
   return Platform.OS === "web" ? content : (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      {content}
-    </TouchableWithoutFeedback>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 20 : 0}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        {content}
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

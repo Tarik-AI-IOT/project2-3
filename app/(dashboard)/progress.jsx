@@ -134,7 +134,7 @@ const Progress = () => {
         />
       ));
 return (
-    <ThemedView style={styles.container} safe={true}>
+    <ThemedView style={styles.container} safe={true} safeBottom={false}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}

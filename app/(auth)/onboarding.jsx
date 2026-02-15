@@ -1,4 +1,4 @@
-import { StyleSheet, Keyboard, Image, Platform, View, TouchableOpacity } from "react-native";
+import { StyleSheet, Keyboard, Image, Platform, View, TouchableOpacity, KeyboardAvoidingView } from "react-native";
 import { useRouter } from "expo-router";
 import ThemedButton from "../../components/ThemedButton";
 import ThemedView from "../../components/ThemedView";
@@ -104,9 +104,15 @@ const Onboarding = () => {
   );
 
   return Platform.OS === "web" ? content : (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      {content}
-    </TouchableWithoutFeedback>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 20 : 0}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        {content}
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

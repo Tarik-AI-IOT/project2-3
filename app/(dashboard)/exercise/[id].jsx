@@ -39,7 +39,7 @@ const ExerciseDetail = () => {
   }, [id]);
 
   return (
-    <ThemedView style={styles.container} safe={true}>
+    <ThemedView style={styles.container} safe={true} safeBottom={false}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <TouchableOpacity
           style={[styles.circleButton, { backgroundColor: theme.cardBackground }]}
