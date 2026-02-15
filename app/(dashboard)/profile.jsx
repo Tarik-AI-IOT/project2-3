@@ -5,6 +5,7 @@ import ThemedView from "../../components/ThemedView";
 import { useTheme } from "../../context/ThemeContext";
 import ThemedText from "../../components/ThemedText";
 import ThemedButton from "../../components/ThemedButton";
+import ThemedTextInput from "../../components/ThemedTextInput";
 import { useUser } from "../../hooks/useUser";
 import { account } from "../../storage/data";
 import { useEffect, useState } from "react";
@@ -14,12 +15,22 @@ const Profile = () => {
   const router = useRouter();
   const { user, logout } = useUser();
   const [profile, setProfile] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftAge, setDraftAge] = useState("");
+  const [draftWeight, setDraftWeight] = useState("");
+  const [draftUnit, setDraftUnit] = useState("kg");
+  const [draftGoal, setDraftGoal] = useState("");
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     const loadProfile = async () => {
       if (!user?.id) return;
       const data = await account.getProfile(user.id);
       setProfile(data);
+      setDraftAge(data?.age || "");
+      setDraftWeight(data?.weight || "");
+      setDraftUnit(data?.weightUnit || "kg");
+      setDraftGoal(data?.goal || "");
     };
     loadProfile();
   }, [user?.id]);
@@ -32,6 +43,28 @@ const Profile = () => {
     },
     { label: "Fitness Goal", value: profile?.goal || "-" },
   ];
+
+  const handleSave = async () => {
+    if (!draftAge.trim() || !draftWeight.trim() || !draftGoal.trim()) {
+      setSaveError("Please fill in all fields.");
+      return;
+    }
+    setSaveError("");
+    await account.saveProfile(user.id, {
+      age: draftAge,
+      weight: draftWeight,
+      weightUnit: draftUnit,
+      goal: draftGoal,
+    });
+    setProfile({
+      ...(profile || {}),
+      age: draftAge,
+      weight: draftWeight,
+      weightUnit: draftUnit,
+      goal: draftGoal,
+    });
+    setIsEditing(false);
+  };
 
 
   return (
@@ -57,6 +90,7 @@ const Profile = () => {
                 { backgroundColor: theme.cardBackground, borderColor: theme.border },
               ]}
               activeOpacity={0.8}
+              onPress={() => setIsEditing(true)}
             >
               <MaterialCommunityIcons
                 name="pencil"
@@ -150,21 +184,57 @@ const Profile = () => {
             { backgroundColor: theme.cardBackground, borderColor: theme.border },
           ]}
         >
-          {infoRows.map((row, index) => (
-            <View
-              key={row.label}
-              style={[
-                styles.infoRow,
-                index === infoRows.length - 1 && styles.infoRowLast,
-                { borderColor: theme.border },
-              ]}
-            >
-              <ThemedText style={[styles.infoLabel, { color: theme.textSecondary }]}>
-                {row.label}
-              </ThemedText>
-              <ThemedText style={styles.infoValue}>{row.value}</ThemedText>
+          {isEditing ? (
+            <View style={styles.editForm}>
+              <ThemedTextInput
+                style={styles.editInput}
+                placeholder="Age"
+                keyboardType="number-pad"
+                value={draftAge}
+                onChangeText={setDraftAge}
+              />
+              <ThemedTextInput
+                style={styles.editInput}
+                placeholder={`Weight (${draftUnit})`}
+                keyboardType="decimal-pad"
+                value={draftWeight}
+                onChangeText={setDraftWeight}
+              />
+              <ThemedTextInput
+                style={styles.editInput}
+                placeholder="Goal"
+                value={draftGoal}
+                onChangeText={setDraftGoal}
+              />
+
+              <View style={styles.editActions}>
+                <ThemedButton onPress={handleSave} style={styles.saveButton}>
+                  <ThemedText style={styles.saveText}>Save</ThemedText>
+                </ThemedButton>
+                <ThemedButton onPress={() => setIsEditing(false)} style={styles.cancelButton}>
+                  <ThemedText style={styles.cancelText}>Cancel</ThemedText>
+                </ThemedButton>
+              </View>
+
+              {saveError ? <ThemedText style={styles.errorText}>{saveError}</ThemedText> : null}
             </View>
-          ))}
+          ) : (
+            infoRows.map((row, index) => (
+              <View
+                key={row.label}
+                style={[
+                  styles.infoRow,
+                  index === infoRows.length - 1 && styles.infoRowLast,
+                  { borderColor: theme.border },
+                ]}
+              >
+                <ThemedText style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                  {row.label}
+                </ThemedText>
+                <ThemedText style={styles.infoValue}>{row.value}</ThemedText>
+              </View>
+            ))
+          )}
         </View>
 
         <ThemedButton
@@ -320,6 +390,41 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 15,
     fontWeight: "600",
+  },
+  editForm: {
+    padding: 16,
+  },
+  editInput: {
+    marginBottom: 12,
+  },
+  editActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
+  saveButton: {
+    flex: 1,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  saveText: {
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+  cancelButton: {
+    flex: 1,
+    borderRadius: 10,
+    alignItems: "center",
+    backgroundColor: "#444444",
+  },
+  cancelText: {
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+  errorText: {
+    color: "#ef4444",
+    marginTop: 8,
+    textAlign: "center",
   },
   logoutButton: {
     marginTop: 24,
