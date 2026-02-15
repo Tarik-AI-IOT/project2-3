@@ -6,19 +6,32 @@ import { useTheme } from "../../context/ThemeContext";
 import ThemedText from "../../components/ThemedText";
 import ThemedButton from "../../components/ThemedButton";
 import { useUser } from "../../hooks/useUser";
-
-const infoRows = [
-  { label: "Age", value: "28 years" },
-  { label: "Height", value: "5'10\"" },
-  { label: "Current Weight", value: "174 lbs" },
-  { label: "Fitness Goal", value: "Lose weight & build muscle" },
-];
+import { account } from "../../storage/data";
+import { useEffect, useState } from "react";
 
 const Profile = () => {
   const { theme, mode, toggleTheme } = useTheme();
   const router = useRouter();
-  const { user ,logout } = useUser();
-  console.log("user info",user)
+  const { user, logout } = useUser();
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user?.id) return;
+      const data = await account.getProfile(user.id);
+      setProfile(data);
+    };
+    loadProfile();
+  }, [user?.id]);
+
+  const infoRows = [
+    { label: "Age", value: profile?.age ? `${profile.age} years` : "-" },
+    {
+      label: "Current Weight",
+      value: profile?.weight ? `${profile.weight} ${profile.weightUnit || ""}` : "-",
+    },
+    { label: "Fitness Goal", value: profile?.goal || "-" },
+  ];
 
 
   return (
