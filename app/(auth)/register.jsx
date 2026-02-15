@@ -27,9 +27,13 @@ const Register = () => {
         setError("Please fill in all fields");
         return;
       }
+      if (!email.includes("@") || !email.includes(".")) {
+        setError("Please enter a valid email.");
+        return;
+      }
       await register(email, password, firstName, lastName);
       console.log("current user:", user);
-      router.replace("/(dashboard)/home");
+      router.replace("/onboarding");
     }
     catch (error) {
       console.error("Registration error:", error.message);
@@ -51,7 +55,8 @@ const Register = () => {
       <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="First Name" autoCapitalize="words" onChangeText={setFirstName} value={firstName} />
       <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="Last Name" autoCapitalize="words" onChangeText={setLastName} value={lastName} />
       <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="Email" keyboardType="email-address"
-        onChangeText={setEmail} value={email}
+        onChangeText={setEmail} 
+        value={email}
       />
       <ThemedTextInput style={{width: '80%', marginBottom: 24}} placeholder="Password" secureTextEntry={true}
         onChangeText={setPassword} value={password}
