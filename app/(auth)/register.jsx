@@ -1,4 +1,4 @@
-import { StyleSheet, Keyboard, KeyboardAvoidingView, Image, Platform } from "react-native";
+import { StyleSheet, Keyboard, KeyboardAvoidingView, Image, Platform, ScrollView } from "react-native";
 import { Link , useRouter } from "expo-router";
 import ThemedButton from "../../components/ThemedButton";
 import ThemedView from "../../components/ThemedView";
@@ -21,7 +21,7 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const {user, register} = useUser();
+  const { startSignup } = useUser();
 
   const handleSubmit = async () => {
     try {
@@ -33,8 +33,12 @@ const Register = () => {
         setError("Please enter a valid email.");
         return;
       }
-      await register(email, password, firstName, lastName);
-      console.log("current user:", user);
+      startSignup({
+        email: email.trim(),
+        password,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      });
       router.replace("/onboarding");
     }
     catch (error) {
@@ -45,37 +49,43 @@ const Register = () => {
 
   const content = (
     <ThemedView style={styles.container}>
-      <Spacer />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Spacer />
 
-      <Image source={require("../../assets/rofit.png")} style={styles.logo} />
-      <Spacer height={24} />
+        <Image source={require("../../assets/rofit.png")} style={styles.logo} />
+        <Spacer height={24} />
 
-      <ThemedText title style={styles.title}>
-        Register for an account
-      </ThemedText>
-      {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
-      <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="First Name" autoCapitalize="words" onChangeText={setFirstName} value={firstName} />
-      <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="Last Name" autoCapitalize="words" onChangeText={setLastName} value={lastName} />
-      <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="Email" keyboardType="email-address"
-        onChangeText={setEmail} 
-        value={email}
-      />
-      <ThemedTextInput style={{width: '80%', marginBottom: 24}} placeholder="Password" secureTextEntry={true}
-        onChangeText={setPassword} value={password}
-      />
-
-      <ThemedButton onPress={handleSubmit}>
-        <ThemedText>Register</ThemedText>
-      </ThemedButton>
-
-      <Spacer height={36} />
-      <Link href="/login" style={styles.link}>
-        <ThemedText
-          style={{ textAlign: "center", textDecorationLine: "underline" }}
-        >
-          Login Instead
+        <ThemedText title style={styles.title}>
+          Register for an account
         </ThemedText>
-      </Link>
+        {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
+        <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="First Name" autoCapitalize="words" onChangeText={setFirstName} value={firstName} />
+        <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="Last Name" autoCapitalize="words" onChangeText={setLastName} value={lastName} />
+        <ThemedTextInput style={{width: '80%', marginBottom: 16}} placeholder="Email" keyboardType="email-address"
+          onChangeText={setEmail}
+          value={email}
+        />
+        <ThemedTextInput style={{width: '80%', marginBottom: 24}} placeholder="Password" secureTextEntry={true}
+          onChangeText={setPassword} value={password}
+        />
+
+        <ThemedButton onPress={handleSubmit}>
+          <ThemedText>Register</ThemedText>
+        </ThemedButton>
+
+        <Spacer height={36} />
+        <Link href="/login" style={styles.link}>
+          <ThemedText
+            style={{ textAlign: "center", textDecorationLine: "underline" }}
+          >
+            Login Instead
+          </ThemedText>
+        </Link>
+      </ScrollView>
     </ThemedView>
   );
 
@@ -97,8 +107,13 @@ export default Register;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
-        alignItems: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 24,
   },
   title: {
     fontSize: 18,

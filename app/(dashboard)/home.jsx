@@ -7,6 +7,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState, useEffect } from 'react';
 import { fetchExercises } from '../../services/exercises';
 import { useUser } from '../../hooks/useUser';
+import { supabase } from "../../lib/supabase";
 
 
 
@@ -21,6 +22,7 @@ const Home = () => {
     const { theme } = useTheme();
     const router = useRouter();
     const { user } = useUser();
+    const [profile, setProfile] = useState(null);
 
     const [workoutExercises, setWorkoutExercises] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -52,6 +54,23 @@ const Home = () => {
       };
     }, []);   
 
+    useEffect(() => {
+      let active = true;
+      const loadProfile = async () => {
+        if (!user?.id) return;
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("first_name")
+          .eq("id", user.id)
+          .single();
+        if (active && !error) setProfile(data);
+      };
+      loadProfile();
+      return () => {
+        active = false;
+      };
+    }, [user?.id]);
+
 
 return (
     <ThemedView style={styles.container} safe={true} safeBottom={false}>
@@ -67,7 +86,9 @@ return (
           </TouchableOpacity>
         </View>
 
-        <ThemedText style={styles.title}>Welcome Back, {user?.firstName || "John"}</ThemedText>
+        <ThemedText style={styles.title}>
+          Welcome Back, {profile?.first_name || "John"}
+        </ThemedText>
         <ThemedText style={[styles.subtitle, {color: theme.textSecondary}]}>Let's crush today's workout!</ThemedText>
 
         <View style={[styles.workoutCard, { backgroundColor: theme.cardBackground }]}>

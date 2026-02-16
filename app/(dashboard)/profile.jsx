@@ -1,4 +1,12 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ThemedView from "../../components/ThemedView";
@@ -7,7 +15,7 @@ import ThemedText from "../../components/ThemedText";
 import ThemedButton from "../../components/ThemedButton";
 import ThemedTextInput from "../../components/ThemedTextInput";
 import { useUser } from "../../hooks/useUser";
-import { account } from "../../storage/data";
+import { supabase } from "../../lib/supabase";
 import { useEffect, useState } from "react";
 
 const Profile = () => {
@@ -21,15 +29,21 @@ const Profile = () => {
   const [draftUnit, setDraftUnit] = useState("kg");
   const [draftGoal, setDraftGoal] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
       if (!user?.id) return;
-      const data = await account.getProfile(user.id);
-      setProfile(data);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+      if (!error) setProfile(data);
       setDraftAge(data?.age || "");
       setDraftWeight(data?.weight || "");
-      setDraftUnit(data?.weightUnit || "kg");
+      setDraftUnit(data?.weight_unit || "kg");
       setDraftGoal(data?.goal || "");
     };
     loadProfile();
@@ -39,7 +53,7 @@ const Profile = () => {
     { label: "Age", value: profile?.age ? `${profile.age} years` : "-" },
     {
       label: "Current Weight",
-      value: profile?.weight ? `${profile.weight} ${profile.weightUnit || ""}` : "-",
+      value: profile?.weight ? `${profile.weight} ${profile.weight_unit || ""}` : "-",
     },
     { label: "Fitness Goal", value: profile?.goal || "-" },
   ];
@@ -50,20 +64,48 @@ const Profile = () => {
       return;
     }
     setSaveError("");
-    await account.saveProfile(user.id, {
-      age: draftAge,
-      weight: draftWeight,
-      weightUnit: draftUnit,
+    await supabase.from("profiles").upsert({
+      id: user.id,
+      age: Number(draftAge),
+      weight: Number(draftWeight),
+      weight_unit: draftUnit,
       goal: draftGoal,
     });
     setProfile({
       ...(profile || {}),
       age: draftAge,
       weight: draftWeight,
-      weightUnit: draftUnit,
+      weight_unit: draftUnit,
       goal: draftGoal,
     });
     setIsEditing(false);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete account",
+      "This will delete your profile data and sign you out. This action can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            if (!user?.id || deleting) return;
+            setDeleting(true);
+            setDeleteError("");
+            const { error } = await supabase.from("profiles").delete().eq("id", user.id);
+            if (error) {
+              setDeleteError("Could not delete profile data. Please try again.");
+              setDeleting(false);
+              return;
+            }
+            await logout();
+            router.replace("/login");
+          },
+        },
+      ]
+    );
   };
 
 
@@ -137,7 +179,9 @@ const Profile = () => {
               <Ionicons name="person" size={32} color={theme.primary} />
             </View>
           </View>
-          <ThemedText style={styles.name}>{user?.firstName || "John"} {user?.lastName || "Doe"}</ThemedText>
+          <ThemedText style={styles.name}>
+            {profile?.first_name || "John"} {profile?.last_name || "Doe"}
+          </ThemedText>
         </View>
 
         <View style={styles.statsRow}>
@@ -252,6 +296,45 @@ const Profile = () => {
         >
           <ThemedText style={styles.logoutText}>Log out</ThemedText>
         </ThemedButton>
+
+        <View
+          style={[
+            styles.dangerCard,
+            { backgroundColor: theme.cardBackground, borderColor: theme.error || "#ef4444" },
+          ]}
+        >
+          <View style={styles.dangerHeader}>
+            <View
+              style={[
+                styles.dangerIcon,
+                { backgroundColor: theme.background, borderColor: theme.error || "#ef4444" },
+              ]}
+            >
+              <MaterialCommunityIcons name="delete-alert" size={18} color={theme.error} />
+            </View>
+            <View style={styles.dangerInfo}>
+              <ThemedText style={styles.dangerTitle}>Delete account</ThemedText>
+              <ThemedText style={[styles.dangerText, { color: theme.textSecondary }]}>
+                This will permanently delete your account and all your workouts, progress, and data.
+              </ThemedText>
+            </View>
+          </View>
+
+          <ThemedButton
+            style={[
+              styles.deleteButton,
+              { backgroundColor: theme.error || "#ef4444" },
+            ]}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
+          >
+            <ThemedText style={styles.deleteText}>
+              {deleting ? "Deleting..." : "Delete account"}
+            </ThemedText>
+          </ThemedButton>
+
+          {deleteError ? <ThemedText style={styles.errorText}>{deleteError}</ThemedText> : null}
+        </View>
         </ScrollView>
       </ThemedView>
     </KeyboardAvoidingView>
@@ -439,6 +522,46 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoutText: {
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+  dangerCard: {
+    marginTop: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+  },
+  dangerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  dangerIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  dangerInfo: {
+    flex: 1,
+  },
+  dangerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  dangerText: {
+    marginTop: 4,
+    fontSize: 12,
+  },
+  deleteButton: {
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  deleteText: {
     color: "#ffffff",
     fontWeight: "600",
   },

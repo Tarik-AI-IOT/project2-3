@@ -8,38 +8,97 @@ import ThemedTextInput from "../../components/ThemedTextInput";
 import { useState } from "react";
 import { TouchableWithoutFeedback } from "react-native";
 import { useUser } from "../../hooks/useUser";
-import { account } from "../../storage/data";
 import { useTheme } from "../../context/ThemeContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import LoadingScreen from "../../components/LoadingScreen";
 
 const Onboarding = () => {
   const router = useRouter();
-  const { user } = useUser();
+  const { pendingSignup, register, clearPendingSignup } = useUser();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [age, setAge] = useState("");
   const [weight, setWeight] = useState("");
   const [weightUnit, setWeightUnit] = useState("kg");
   const [goal, setGoal] = useState("");
   const [error, setError] = useState("");
+  const [emailExists, setEmailExists] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
+    if (submitting) return;
     if (!age.trim() || !weight.trim() || !goal.trim()) {
       setError("Please fill in all fields.");
       return;
     }
     setError("");
+    setEmailExists(false);
+    setSubmitting(true);
 
     try {
-      // Save profile data for current user
-      await account.saveProfile(user?.id, { age, weight, weightUnit, goal });
-      router.replace("/(dashboard)/home");
+      const startTime = Date.now();
+      if (!pendingSignup) {
+        setError("Please register first.");
+        setSubmitting(false);
+        return;
+      }
+
+      await register({
+        ...pendingSignup,
+        age,
+        weight,
+        weightUnit,
+        goal,
+      });
+
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 3000 - elapsed);
+      if (remaining) {
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
+
+      clearPendingSignup();
+      router.replace("/check-email");
     } catch (e) {
-      setError("Could not save profile.");
+      const message = e?.message || "Could not sign up.";
+      setError(message);
+      const lower = message.toLowerCase();
+      setEmailExists(
+        lower.includes("already") || lower.includes("exist") || lower.includes("registered")
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  if (submitting) {
+    return <LoadingScreen label="Creating account" />;
+  }
+
   const content = (
     <ThemedView style={styles.container}>
+      <View style={[styles.topRow, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            clearPendingSignup();
+            router.replace("/login");
+          }}
+          style={[
+            styles.backPill,
+            { backgroundColor: theme.cardBackground, borderColor: theme.border },
+          ]}
+          activeOpacity={0.85}
+        >
+          <View style={[styles.backIcon, { backgroundColor: theme.background }]}>
+            <Ionicons name="chevron-back" size={16} color={theme.primary} />
+          </View>
+          <ThemedText style={[styles.backText, { color: theme.text }]}>
+            Back to login
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
       <Spacer />
 
       <Image source={require("../../assets/rofit.png")} style={styles.logo} />
@@ -49,6 +108,13 @@ const Onboarding = () => {
         Complete your profile
       </ThemedText>
       {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
+      {emailExists ? (
+        <TouchableOpacity onPress={() => router.replace("/login")}>
+          <ThemedText style={[styles.linkText, { color: theme.primary }]}>
+            Go to login
+          </ThemedText>
+        </TouchableOpacity>
+      ) : null}
 
       <ThemedTextInput
         style={{ width: "80%", marginBottom: 16 }}
@@ -124,6 +190,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  topRow: {
+    position: "absolute",
+    top: 0,
+    left: 20,
+  },
   title: {
     fontSize: 18,
     textAlign: "center",
@@ -138,6 +209,26 @@ const styles = StyleSheet.create({
     color: "red",
     marginBottom: 12,
     textAlign: "center",
+  },
+  backPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 8,
+  },
+  backIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   weightRow: {
     width: "80%",
