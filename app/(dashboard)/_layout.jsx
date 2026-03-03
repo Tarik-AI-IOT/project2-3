@@ -1,13 +1,18 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Animated } from "react-native";
-import { screensEnabled } from "react-native-screens";
 import { useEffect, useRef } from "react";
+import { useUser } from "../../hooks/useUser";
 
 
 const DashboardLayout = () => {
   const { theme } = useTheme();
+  const { user, role, loading } = useUser();
+
+  if (loading) return null;
+  if (!user) return <Redirect href="/login" />;
+  if (role === "trainer" || role === "admin") return <Redirect href="/(admin)/clients" />;
 
   // Animation des icones de tab
     const AnimatedTabIcon = ({ name, focused, color }) => {

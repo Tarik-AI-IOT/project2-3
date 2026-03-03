@@ -20,13 +20,12 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const { login, user } = useUser();
+  const { login } = useUser();
 
   const handleSubmit = async () => {
     try {
       await login(email, password);
-      console.log("current user:", user);
-      router.replace("/(dashboard)/home");
+      router.replace("/");
     }
     catch (error) {
       console.error("Registration error:", error.message);
