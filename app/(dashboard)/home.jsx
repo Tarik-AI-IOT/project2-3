@@ -1,20 +1,18 @@
 import { StyleSheet, View, ScrollView, TouchableOpacity, Image, ActivityIndicator } from "react-native";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ThemedView from "../../components/ThemedView";
 import { useTheme } from "../../context/ThemeContext";
 import ThemedText from "../../components/ThemedText";
-import { resolveExerciseMatch } from "../../services/exercises";
 import { useUser } from "../../hooks/useUser";
 import { supabase } from "../../lib/supabase";
-
-const TODAY_PLAN = [
-  { key: "barbell-squat", displayName: "Barbell Squat", sets: 4, reps: 8, load: "185 lbs", done: true },
-  { key: "romanian-deadlift", displayName: "Romanian Deadlift", sets: 3, reps: 10, load: "135 lbs", done: true },
-  { key: "leg-press", displayName: "Leg Press", sets: 3, reps: 12, load: "315 lbs", done: false },
-  { key: "leg-curl", displayName: "Leg Curl", sets: 3, reps: 12, load: "90 lbs", done: false },
-];
+import {
+  getWorkoutStats,
+  loadWorkoutPlan,
+  saveWorkoutPlan,
+  toggleExerciseCompletion,
+} from "../../services/workoutPlan";
 
 const toLabel = (value = "") =>
   value
@@ -23,13 +21,8 @@ const toLabel = (value = "") =>
     .trim()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-const buildFallbackPlan = () =>
-  TODAY_PLAN.map((exercise) => ({
-    ...exercise,
-    apiId: null,
-    target: "",
-    equipment: "",
-  }));
+const withAlpha = (color, alpha = "1f") =>
+  typeof color === "string" && color.startsWith("#") && color.length === 7 ? `${color}${alpha}` : color;
 
 const Home = () => {
   const { theme } = useTheme();
@@ -37,64 +30,40 @@ const Home = () => {
   const { user } = useUser();
 
   const [profile, setProfile] = useState(null);
-  const [todayExercises, setTodayExercises] = useState(buildFallbackPlan);
+  const [todayPlan, setTodayPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let active = true;
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-    const loadTodayPlan = async () => {
-      try {
-        setLoading(true);
-        setError("");
+      const loadPlan = async () => {
+        try {
+          setLoading(true);
+          setError("");
 
-        const enriched = await Promise.all(
-          TODAY_PLAN.map(async (exercise) => {
-            try {
-              const match = await resolveExerciseMatch(exercise.displayName);
+          const plan = await loadWorkoutPlan(user?.id);
+          if (!active) return;
 
-              return {
-                ...exercise,
-                apiId: match?.id ?? null,
-                target: match?.target ?? "",
-                equipment: match?.equipment ?? "",
-              };
-            } catch (matchError) {
-              return {
-                ...exercise,
-                apiId: null,
-                target: "",
-                equipment: "",
-              };
-            }
-          })
-        );
+          setTodayPlan(plan);
 
-        if (!active) return;
-
-        setTodayExercises(enriched);
-
-        const linkedCount = enriched.filter((item) => Boolean(item.apiId)).length;
-        if (linkedCount === 0) {
-          setError("Live ExerciseDB demos are unavailable right now.");
+          const hasAnyDemo = plan.exercises.some((exercise) => Boolean(exercise.apiId));
+          if (!hasAnyDemo) setError("Exercise demos are still syncing.");
+        } catch {
+          if (active) setError("Could not load your workout plan.");
+        } finally {
+          if (active) setLoading(false);
         }
-      } catch (loadError) {
-        if (active) {
-          setTodayExercises(buildFallbackPlan());
-          setError("Could not sync live exercise demos.");
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
+      };
 
-    loadTodayPlan();
+      loadPlan();
 
-    return () => {
-      active = false;
-    };
-  }, []);
+      return () => {
+        active = false;
+      };
+    }, [user?.id])
+  );
 
   useEffect(() => {
     let active = true;
@@ -104,7 +73,7 @@ const Home = () => {
 
       const { data, error: profileError } = await supabase
         .from("profiles")
-        .select("first_name")
+        .select("first_name, goal")
         .eq("id", user.id)
         .single();
 
@@ -118,10 +87,6 @@ const Home = () => {
     };
   }, [user?.id]);
 
-  const completedCount = useMemo(() => todayExercises.filter((exercise) => exercise.done).length, [todayExercises]);
-  const totalCount = todayExercises.length;
-  const completionRate = totalCount ? completedCount / totalCount : 0;
-
   const dateLabel = useMemo(
     () =>
       new Intl.DateTimeFormat("en-US", {
@@ -132,14 +97,27 @@ const Home = () => {
     []
   );
 
-  const estimatedMinutes = useMemo(
-    () => todayExercises.reduce((sum, exercise) => sum + exercise.sets * 3, 0),
-    [todayExercises]
-  );
+  const stats = useMemo(() => getWorkoutStats(todayPlan), [todayPlan]);
+  const exercises = todayPlan?.exercises || [];
+
+  const startWorkout = () => {
+    router.push("/(dashboard)/workout-session");
+  };
 
   const openExerciseDetail = (exercise) => {
     if (!exercise?.apiId) return;
     router.push(`/exercise/${exercise.apiId}`);
+  };
+
+  const handleToggleExerciseDone = (exerciseKey) => {
+    setTodayPlan((current) => {
+      if (!current) return current;
+      const next = toggleExerciseCompletion(current, exerciseKey);
+      saveWorkoutPlan(user?.id, next).catch(() => {
+        setError("Could not save completion status.");
+      });
+      return next;
+    });
   };
 
   return (
@@ -156,9 +134,9 @@ const Home = () => {
           </TouchableOpacity>
         </View>
 
-        <ThemedText style={styles.title}>Welcome Back, {profile?.first_name || "John"}</ThemedText>
+        <ThemedText style={styles.title}>Welcome Back, {profile?.first_name || "Athlete"}</ThemedText>
         <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
-          Keep it clean. Keep it consistent.
+          {profile?.goal ? `Goal: ${profile.goal}` : "Keep it clean. Keep it consistent."}
         </ThemedText>
 
         <View
@@ -182,7 +160,7 @@ const Home = () => {
             </View>
             <View style={[styles.summaryBadge, { backgroundColor: theme.background }]}>
               <ThemedText style={[styles.summaryBadgeText, { color: theme.primary }]}>
-                {completedCount}/{totalCount}
+                {stats.completedExercises}/{stats.totalExercises}
               </ThemedText>
             </View>
           </View>
@@ -193,7 +171,7 @@ const Home = () => {
                 styles.progressFill,
                 {
                   backgroundColor: theme.primary,
-                  width: `${Math.round(completionRate * 100)}%`,
+                  width: `${Math.round(stats.completionRate * 100)}%`,
                 },
               ]}
             />
@@ -202,72 +180,66 @@ const Home = () => {
           <View style={styles.summaryMetaRow}>
             <View style={[styles.summaryMetaChip, { backgroundColor: theme.background }]}>
               <ThemedText style={[styles.summaryMetaText, { color: theme.textSecondary }]}>
-                {totalCount} exercises
+                {stats.totalSets} sets
               </ThemedText>
             </View>
             <View style={[styles.summaryMetaChip, { backgroundColor: theme.background }]}>
               <ThemedText style={[styles.summaryMetaText, { color: theme.textSecondary }]}>
-                {estimatedMinutes} min est.
+                {stats.estimatedMinutes} min est.
+              </ThemedText>
+            </View>
+            <View style={[styles.summaryMetaChip, { backgroundColor: theme.background }]}>
+              <ThemedText style={[styles.summaryMetaText, { color: theme.textSecondary }]}>
+                {stats.completedSets} done
               </ThemedText>
             </View>
           </View>
 
+          <TouchableOpacity style={[styles.startButton, { backgroundColor: theme.primary }]} onPress={startWorkout}>
+            <Ionicons name="play" size={14} color="#ffffff" />
+            <ThemedText style={styles.startButtonText}>Start Workout</ThemedText>
+          </TouchableOpacity>
+
           {loading && (
             <View style={styles.stateRow}>
               <ActivityIndicator color={theme.primary} size="small" />
-              <ThemedText style={[styles.stateText, { color: theme.textSecondary }]}>
-                Syncing ExerciseDB demos...
-              </ThemedText>
+              <ThemedText style={[styles.stateText, { color: theme.textSecondary }]}>Loading today&apos;s plan...</ThemedText>
             </View>
           )}
 
-          {!loading && error ? (
-            <ThemedText style={[styles.errorText, { color: theme.error }]}>{error}</ThemedText>
-          ) : null}
+          {!loading && error ? <ThemedText style={[styles.errorText, { color: theme.error }]}>{error}</ThemedText> : null}
         </View>
 
         <View style={styles.sectionHeader}>
-          <ThemedText style={styles.sectionTitle}>Today&apos;s Exercises</ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: theme.textSecondary }]}>
-            Tap card to open demo
-          </ThemedText>
+          <ThemedText style={styles.sectionTitle}>Assigned Exercises</ThemedText>
+          <ThemedText style={[styles.sectionHint, { color: theme.textSecondary }]}>Track sets, weight and notes</ThemedText>
         </View>
 
         <View style={styles.exerciseList}>
-          {todayExercises.map((exercise) => {
+          {exercises.map((exercise) => {
+            const completedSets = exercise.setLogs.filter((setLog) => setLog.completed).length;
+            const totalSets = exercise.setLogs.length;
+            const isDone = totalSets > 0 && completedSets === totalSets;
             const isDemoAvailable = Boolean(exercise.apiId);
 
             return (
-              <TouchableOpacity
+              <View
                 key={exercise.key}
                 style={[
                   styles.exerciseCard,
                   {
-                    backgroundColor: theme.cardBackground,
+                    backgroundColor: isDone ? withAlpha(theme.primary, "14") : theme.cardBackground,
                     borderColor: theme.border,
                   },
-                  !isDemoAvailable && styles.exerciseCardDisabled,
+                  isDone && { borderColor: theme.primary },
                 ]}
-                activeOpacity={isDemoAvailable ? 0.8 : 1}
-                onPress={() => openExerciseDetail(exercise)}
               >
-                <View
-                  style={[
-                    styles.checkCircle,
-                    exercise.done
-                      ? { backgroundColor: theme.primary, borderColor: theme.primary }
-                      : { backgroundColor: "transparent", borderColor: theme.border },
-                  ]}
-                >
-                  {exercise.done ? <Ionicons name="checkmark" size={14} color={theme.background} /> : null}
-                </View>
-
                 <View style={styles.exerciseInfo}>
                   <ThemedText
                     style={[
                       styles.exerciseName,
-                      exercise.done && styles.exerciseDone,
-                      exercise.done && { color: theme.textSecondary },
+                      isDone && styles.exerciseDone,
+                      isDone && { color: theme.textSecondary },
                     ]}
                   >
                     {exercise.displayName}
@@ -276,11 +248,16 @@ const Home = () => {
                   <View style={styles.exerciseTagRow}>
                     <View style={[styles.exerciseTag, { backgroundColor: theme.background }]}>
                       <ThemedText style={[styles.exerciseTagText, { color: theme.textSecondary }]}>
-                        {exercise.sets} x {exercise.reps}
+                        {exercise.plannedSets} x {exercise.plannedReps}
                       </ThemedText>
                     </View>
                     <View style={[styles.exerciseTag, { backgroundColor: theme.background }]}>
-                      <ThemedText style={[styles.exerciseTagText, { color: theme.primary }]}>{exercise.load}</ThemedText>
+                      <ThemedText style={[styles.exerciseTagText, { color: theme.primary }]}>{exercise.plannedLoad}</ThemedText>
+                    </View>
+                    <View style={[styles.exerciseTag, { backgroundColor: theme.background }]}>
+                      <ThemedText style={[styles.exerciseTagText, { color: theme.textSecondary }]}>
+                        {completedSets}/{totalSets} sets
+                      </ThemedText>
                     </View>
                   </View>
 
@@ -301,22 +278,54 @@ const Home = () => {
                       </View>
                     ) : null}
 
-                    {!isDemoAvailable ? (
-                      <ThemedText style={[styles.detailChipText, { color: theme.textSecondary }]}>
-                        No live demo yet
-                      </ThemedText>
+                    {exercise.note ? (
+                      <View style={[styles.detailChip, { borderColor: theme.primary }]}>
+                        <ThemedText style={[styles.detailChipText, { color: theme.primary }]}>Note added</ThemedText>
+                      </View>
+                    ) : null}
+
+                    {isDone ? (
+                      <View style={[styles.doneChip, { backgroundColor: theme.primary }]}>
+                        <Ionicons name="checkmark-circle" size={11} color="#ffffff" />
+                        <ThemedText style={styles.doneChipText}>Completed</ThemedText>
+                      </View>
                     ) : null}
                   </View>
                 </View>
 
-                <View style={[styles.chevronWrap, { backgroundColor: theme.background }]}>
-                  <Ionicons
-                    name={isDemoAvailable ? "chevron-forward" : "remove"}
-                    size={16}
-                    color={isDemoAvailable ? theme.primary : theme.textSecondary}
-                  />
+                <View style={styles.actionColumn}>
+                  <TouchableOpacity
+                    style={[styles.playActionButton, { backgroundColor: theme.background, borderColor: theme.border }]}
+                    activeOpacity={isDemoAvailable ? 0.8 : 1}
+                    onPress={() => openExerciseDetail(exercise)}
+                    hitSlop={8}
+                  >
+                    <Ionicons
+                      name={isDemoAvailable ? "play" : "remove"}
+                      size={14}
+                      color={isDemoAvailable ? theme.primary : theme.textSecondary}
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.cardActionButton,
+                      isDone
+                        ? { backgroundColor: theme.primary, borderColor: theme.primary }
+                        : { backgroundColor: "transparent", borderColor: theme.border },
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={() => handleToggleExerciseDone(exercise.key)}
+                    hitSlop={8}
+                  >
+                    {isDone ? (
+                      <Ionicons name="checkmark" size={14} color={theme.background} />
+                    ) : (
+                      <Ionicons name="ellipse-outline" size={14} color={theme.textSecondary} />
+                    )}
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
+              </View>
             );
           })}
         </View>
@@ -427,6 +436,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
     flexDirection: "row",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+    rowGap: 8,
   },
   summaryMetaChip: {
     borderRadius: 12,
@@ -436,6 +447,20 @@ const styles = StyleSheet.create({
   summaryMetaText: {
     fontSize: 12,
     fontWeight: "500",
+  },
+  startButton: {
+    marginTop: 14,
+    height: 42,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  startButtonText: {
+    marginLeft: 8,
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "700",
   },
   stateRow: {
     marginTop: 12,
@@ -474,18 +499,6 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
   },
-  exerciseCardDisabled: {
-    opacity: 0.86,
-  },
-  checkCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
   exerciseInfo: {
     flex: 1,
   },
@@ -500,6 +513,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
+    rowGap: 8,
   },
   exerciseTag: {
     borderRadius: 999,
@@ -529,12 +544,42 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "500",
   },
-  chevronWrap: {
-    marginLeft: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  doneChip: {
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    marginRight: 8,
+    marginBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  doneChipText: {
+    marginLeft: 4,
+    fontSize: 10,
+    color: "#ffffff",
+    fontWeight: "700",
+  },
+  actionColumn: {
+    marginLeft: 10,
     alignItems: "center",
     justifyContent: "center",
+  },
+  playActionButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    marginVertical: 3,
+  },
+  cardActionButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    marginVertical: 3,
   },
 });
